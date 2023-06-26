@@ -70,6 +70,14 @@ delete-keychain-environment-variable MY_SECRET_ENV
 1. `zgen update`
 1. restart your shell
 
+### [zinit](https://github.com/zdharma-continuum/zinit)
+
+Use it like other oh-my-zsh plugins.
+
+```bash
+zinit snippet https://github.com/onyxraven/zsh-osx-keychain/blob/main/zsh-osx-keychain.plugin.zsh
+```
+
 ## How it works
 
 OSX is able to programmatically access keychain values using the `security` command. You can also see these keychain items (on your default keychain) via `Keychain Access.app`
