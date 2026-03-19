@@ -35,12 +35,14 @@ function keychain-environment-variable() {
 #   prompts for or reads the value from stdin
 function set-keychain-environment-variable() {
   local -a opts
-  # delete recognized options, dont error, store options in $opts, recognize -m and --long
-  # we simplify below and detect any options were added by checking the array length
-  zparseopts -D -E -a opts m -long
+  # remove recognized options from $@; errors on unknown flags. though, flags following the name are not handled well.
+  zparseopts -D -F -a opts m -long || {
+    print "Usage: set-keychain-environment-variable [-m|--long] NAME" >&2
+    return 1
+  }
 
   if [[ -z "$1" ]]; then
-    print "Missing environment variable name" >&2
+    print "Usage: set-keychain-environment-variable [-m|--long] NAME" >&2
     return 1
   fi
 
@@ -49,14 +51,22 @@ function set-keychain-environment-variable() {
     # if we are in a terminal, prompt
     if ((${#opts})); then
       print "Enter value for $1 (end with EOF / Ctrl-D):"
-      value=$(cat)
+      value=$(
+        cat
+        printf .
+      )
+      value=${value%.}
     else
       read -rs "value?Enter value for $1: "
       print
     fi
   else
     # get from stdin
-    value=$(cat)
+    value=$(
+      cat
+      printf .
+    )
+    value=${value%.}
   fi
 
   # if the string has newlines or is longer than 128 characters, or told multiline, use the hex encoding method
