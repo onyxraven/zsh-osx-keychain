@@ -1,8 +1,8 @@
 # zsh-osx-keychain
 
-OSX keychain utilities for secure environment vars
+macOS keychain utilities for secure environment vars
 
-So you have some values you need in your shell, but you know you shouldn't keep then in plaintext on disk.
+So you have some values you need in your shell, but you know you shouldn't keep them in plaintext on disk.
 
 ## Usage
 
@@ -12,25 +12,39 @@ So you have some values you need in your shell, but you know you shouldn't keep 
 set-keychain-environment-variable MY_SECRET_ENV
 ```
 
-You will be prompted for the value (and a confirmation)
+You will be prompted for the value (input is hidden).
 
 ```text
-password data for new item:
-retype password for new item:
+Enter value for MY_SECRET_ENV:
 ```
+
+#### Long or multiline values
+
+Use `-m` (or `--long`) to enter multiline values interactively, terminated by EOF (Ctrl-D):
+
+```sh
+set-keychain-environment-variable -m MY_LONG_SECRET
+```
+
+#### Pipe from stdin
+
+You can also pipe a value directly:
+
+```sh
+echo "my-secret-value" | set-keychain-environment-variable MY_SECRET_ENV
+cat cert.pem | set-keychain-environment-variable MY_CERT
+```
+
+#### Hex encoding
+
+Values are stored as plain text by default. If the value contains newlines, is longer than 128 characters, or the `-m`/`--long` flag is used, the value is automatically hex-encoded in the keychain. Reading transparently handles both formats. (It uses the "type" attribute in keychain to determine how to decode the value on read.)
 
 ### Read a variable
 
-To just see the value
+To just see the value, the `keychain-environment-variable` function reads the value from the keychain and prints it to stdout.
 
 ```sh
 keychain-environment-variable MY_SECRET_ENV
-```
-
-The function prints the value to stdout
-
-```text
-mysecret
 ```
 
 To assign to a variable
@@ -80,7 +94,9 @@ zinit snippet https://github.com/onyxraven/zsh-osx-keychain/blob/main/zsh-osx-ke
 
 ## How it works
 
-OSX is able to programmatically access keychain values using the `security` command. You can also see these keychain items (on your default keychain) via `Keychain Access.app`
+macOS is able to programmatically access keychain values using the `security` command. You can also see these keychain items (on your default keychain) via `Keychain Access.app`.
+
+Short values (≤128 chars, no newlines) are stored as plain text (`-w` flag, type `txts`). Longer or multiline values are hex-encoded (`-X` flag, type `hexs`) and decoded transparently on read via `xxd`.
 
 ## Inspiration / Source
 
