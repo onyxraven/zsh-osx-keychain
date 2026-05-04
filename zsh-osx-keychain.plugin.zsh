@@ -22,7 +22,8 @@ function keychain-environment-variable() {
     security find-generic-password -w -a "${USER}" -D "environment variable" -s "$1"
     ;;
   '"hexs"')
-    security find-generic-password -w -a "${USER}" -D "environment variable" -s "$1" | xxd -r -p
+    # sentinel newline is always appended during encode to force security -w to return hex.
+    security find-generic-password -w -a "${USER}" -D "environment variable" -s "$1" | perl -e 'local $/; my $h = <STDIN>; $h =~ s/\s+\z//; my $d = pack("H*", $h); $d =~ s/\n\z//; print $d'
     ;;
   *)
     print "No environment variable found in keychain for $1" >&2
@@ -69,10 +70,17 @@ function set-keychain-environment-variable() {
     value=${value%.}
   fi
 
-  # if the string has newlines or is longer than 128 characters, or told multiline, use the hex encoding method
-  if [[ "$value" == *$'\n'* ]] || ((${#value} > 128)) || ((${#opts})); then
+  # if the string is longer than 1m characters, it doesn't work with this
+  if ((${#value} > 1000000)); then
+    print "Value is too longfor this utility" >&2
+    exit 1
+  fi
+
+  # if the string has newlines or told multiline, use the hex encoding method
+  # always append a sentinel newline so security -w returns hex (it decodes clean text otherwise)
+  if [[ "$value" == *$'\n'* ]] || ((${#opts})); then
     local hex
-    hex=$(printf '%s' "$value" | xxd -p | tr -d '\n')
+    hex=$(printf '%s\n' "$value" | perl -e 'local $/; print unpack("H*", <STDIN>)')
     security add-generic-password -U -a "${USER}" -D "environment variable" -s "$1" -X "$hex" -C "hexs"
   else
     security add-generic-password -U -a "${USER}" -D "environment variable" -s "$1" -w "$value" -C "txts"
